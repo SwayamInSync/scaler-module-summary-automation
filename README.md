@@ -1,0 +1,1 @@
+# scaler-module-summary-automation
