@@ -1,19 +1,22 @@
-import pandas as pd
-import requests
 import json
-from html_format import report_template
-import pdfkit
 import os
-import shutil
 import re
+import shutil
+
+import pandas as pd
+import pdfkit
+import requests
+
+from html_format import report_template
 from summary_data import summaries
 
 
 class Report:
-    def __init__(self, start_time=None, end_time=None, academy_modules=None):
+    def __init__(self, start_time, end_time, batch_name=None, academy_module=None):
         self.start_time = start_time
         self.end_time = end_time
-        self.academy_modules = [academy_modules]
+        self.academy_modules = [academy_module] if academy_module is not None else None
+        self.batch_names = [batch_name] if batch_name is not None else None
 
         self.session_id = "8c9adaf4-a35a-465b-8056-b8ded2138541"
         self.url = "https://metabase.interviewbit.com/api/card/7465/query"
@@ -38,19 +41,27 @@ class Report:
             #         "target":["variable",["template-tag","instructor_name"]],
             #         "id":"2a311680-60f3-aa07-c46b-33fb3219f815"
             #     },
-            {
-                "type": "string/=",
-                "value": self.academy_modules,
-                "target": ["dimension", ["template-tag", "academy_modules"]],
-                "id": "7f769207-4116-ae70-ce71-94ee6ef80b0a"
-            },
-            #             {
-            #                 "type":"string/=",
-            #                 "value": self.batch_names,
-            #                 "target":["dimension",["template-tag","super_batches"]],
-            #                 "id":"0fd0313c-6a6a-529f-3e52-0e20b4d98a2c"
-            #             }
         ]
+
+        if self.batch_names is not None:
+            parameters.append(
+                {
+                    "type": "string/=",
+                    "value": self.batch_names,
+                    "target": ["dimension", ["template-tag", "super_batches"]],
+                    "id": "0fd0313c-6a6a-529f-3e52-0e20b4d98a2c"
+                }
+            )
+
+        if self.academy_modules is not None:
+            parameters.append(
+                {
+                    "type": "string/=",
+                    "value": self.academy_modules,
+                    "target": ["dimension", ["template-tag", "academy_modules"]],
+                    "id": "7f769207-4116-ae70-ce71-94ee6ef80b0a"
+                },
+            )
 
         payload = {"ignore_cache": False, "collection_preview": False, "parameters": parameters}
         return json.dumps(payload)
@@ -70,7 +81,6 @@ class Report:
         column_metadata = data['results_metadata']['columns']
         column_names = [item['display_name'] for item in column_metadata]
         report_df = pd.DataFrame(data['rows'], columns=column_names)
-        report_df.drop('bucket_name', inplace=True, axis=1)
         report_df['class_time'] = pd.to_datetime(report_df['class_time'])
 
         report_df['summary'] = ""
@@ -94,9 +104,10 @@ class Report:
     def generate_report(self):
         data = self.get_data()
         batch_names = data['batch_names'].unique().tolist()
+        academy_module = data.iloc[0]['module_name']
         print(f"Batches found: {batch_names}")
 
-        dir_path = f"{self.academy_modules[0]} ({self.start_time} to {self.end_time})"
+        dir_path = f"{academy_module} ({self.start_time} to {self.end_time})"
         if not os.path.exists(dir_path):
             os.makedirs(dir_path)
         else:
@@ -109,7 +120,7 @@ class Report:
             df = data[data['batch_names'] == batch_name]
             records = df[['class_title', 'meeting_link', 'summary']].to_dict('records')
 
-            html_code = report_template.format(module_name=self.academy_modules[0],
+            html_code = report_template.format(module_name=academy_module,
                                                batch_name=batch_name,
                                                class_data=records)
 
@@ -124,9 +135,19 @@ class Report:
 
 
 if __name__ == "__main__":
+    # Usage: For single batch
     report = Report(
         start_time="2023-05-12",
         end_time="2023-05-31",
-        academy_modules="Beginner Python 1")
+        batch_name="DSML Feb23 Beginner Mon 2",
+        academy_module="Beginner Python 1"
+    )
     report.generate_report()
 
+    # Usage: For all batches within a module
+    report = Report(
+        start_time="2023-05-12",
+        end_time="2023-05-31",
+        academy_module="Beginner Python 1"
+    )
+    report.generate_report()
