@@ -18,7 +18,7 @@ class Report:
         self.academy_modules = [academy_module] if academy_module is not None else None
         self.batch_names = [batch_name] if batch_name is not None else None
 
-        self.session_id = "8c9adaf4-a35a-465b-8056-b8ded2138541"
+        self.session_id = "4ffc9fbd-f567-45d3-9ae5-08bd2729d507"
         self.url = "https://metabase.interviewbit.com/api/card/7465/query"
 
     def generate_payload(self):
