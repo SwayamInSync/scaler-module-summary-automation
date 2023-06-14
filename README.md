@@ -1,5 +1,9 @@
 # scaler-module-summary-automation
 
+> UPDATE: make sure to use updated session id:
+> ```python
+> self.session_id = "4ffc9fbd-f567-45d3-9ae5-08bd2729d507"
+> ```
 
 # Installation
 
